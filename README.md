@@ -1,1 +1,1 @@
-# vehicle_safety_system
+This is a Project that uses Machine Learning to figure out whether a vehicle is properly following safety protocols on road or not.
