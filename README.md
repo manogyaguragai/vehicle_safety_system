@@ -16,7 +16,9 @@ This project aims to detect vehicles using a YOLO (You Only Look Once) model and
 1. Clone the repository:
    ```bash
    git clone https://github.com/manogyaguragai/vehicle_safety_system.git
+   cd vehicle_safety_system/   
    ```
+   
 2. Install the necessary dependencies:
    ```bash
    pip install -r requirements.txt
