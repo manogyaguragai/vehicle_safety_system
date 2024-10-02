@@ -1,3 +1,3 @@
-from vehicle_detection import capture_from_webcam
+from vehicle_detection import detect_vehicle
 
-capture_from_webcam()
+detect_vehicle()
