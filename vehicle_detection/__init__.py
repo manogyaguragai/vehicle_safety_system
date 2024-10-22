@@ -2,60 +2,63 @@ import cv2
 from ultralytics import YOLO
 import math 
 
-model = YOLO("yolo11m.pt")
+model = YOLO("/home/manogyaguragai/Downloads/bestmain.pt")
 
-class_names = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
-              "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-              "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-              "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat",
-              "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
-              "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli",
-              "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
-              "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
-              "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
-              "teddy bear", "hair drier", "toothbrush"]   # list of class names that the model was trained on and can detect
+class_names= ['bicyclist', 'driver', 'helmet', 'no-helmet', 'notsure']
 
 def detect_vehicle():
-  webcam_capture = cv2.VideoCapture(0)  # capture frames from the default camera
-  webcam_capture.set(3, 640)
-  webcam_capture.set(4, 480)
-  
-  while True:
-    success, img = webcam_capture.read()
-    results = model(img, stream=True)
+    # Initialize webcam capture
+    webcam_capture = cv2.VideoCapture(0)  # capture frames from the default camera
+    webcam_capture.set(3, 640)  # Set width of the window
+    webcam_capture.set(4, 480)  # Set height of the window
 
-    # coordinates
-    for r in results:
-        boxes = r.boxes
+    while True:
+        success, img = webcam_capture.read()  # Read the frame from webcam
+        if not success:
+            break
 
-        for box in boxes:
-            # bounding box
-            x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2) # convert to int values
+        # results = model(img, stream=True)  # Get predictions from the model
+        # Convert BGR (OpenCV format) to RGB (format expected by most models)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = model(img_rgb, stream=True)
 
-            # put box in cam
-            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+        # Parse results
+        for r in results:
+            boxes = r.boxes
 
-            # confidence
-            confidence = math.ceil((box.conf[0]*100))/100
-            print("Confidence: ",confidence)
+            for box in boxes:
+                # Extract bounding box coordinates
+                x1, y1, x2, y2 = box.xyxy[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # Convert to int values
 
-            # class name
-            cls = int(box.cls[0])
-            print("Class name: ", class_names[cls])
+                # Draw bounding box on the image
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
-            # object details
-            org = [x1, y1]
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            fontScale = 1
-            color = (255, 0, 0)
-            thickness = 2
+                # Confidence score
+                confidence = math.ceil((box.conf[0] * 100)) / 100
+                print("Confidence: ", confidence)
 
-            cv2.putText(img, class_names[cls], org, font, fontScale, color, thickness)
+                # Class name based on the prediction (0: With Helmet, 1: Without Helmet)
+                cls = int(box.cls[0])  # Get the class index
+                class_name = class_names[cls]  # Get the class name from the list
+                print("Class name: ", class_name)
 
-    cv2.imshow('Webcam', img)
-    if cv2.waitKey(1) == ord('q'):
-        break
+                # Display the class name on the image
+                org = (x1, y1 - 10)  # Position to place text slightly above the bounding box
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                fontScale = 1
+                color = (255, 0, 0)  # Blue text color
+                thickness = 2
 
-  webcam_capture.release()
-  cv2.destroyAllWindows()
+                cv2.putText(img, f'{class_name} ({confidence:.2f})', org, font, fontScale, color, thickness)
+
+        # Display the webcam feed with detections
+        cv2.imshow('Webcam', img)
+
+        # Press 'q' to exit the loop
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+    # Release the webcam and destroy all OpenCV windows
+    webcam_capture.release()
+    cv2.destroyAllWindows()
