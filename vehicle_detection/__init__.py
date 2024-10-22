@@ -1,64 +1,76 @@
 import cv2
+import os
+import time
 from ultralytics import YOLO
-import math 
+import math
 
 model = YOLO("/home/manogyaguragai/Downloads/bestmain.pt")
 
-class_names= ['bicyclist', 'driver', 'helmet', 'no-helmet', 'notsure']
+class_names = ['bicyclist', 'driver', 'helmet', 'no-helmet', 'notsure']
+
+save_folder = "no_helmet_captured"
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
+
+no_helmet_start_time = None
+image_count = 0
+image_limit = 30
+capture_interval = 5 
 
 def detect_vehicle():
-    # Initialize webcam capture
-    webcam_capture = cv2.VideoCapture(0)  # capture frames from the default camera
-    webcam_capture.set(3, 640)  # Set width of the window
-    webcam_capture.set(4, 480)  # Set height of the window
+    global no_helmet_start_time, image_count
+
+    webcam_capture = cv2.VideoCapture(0)
+    webcam_capture.set(3, 640) 
+    webcam_capture.set(4, 480)  
 
     while True:
-        success, img = webcam_capture.read()  # Read the frame from webcam
+        success, img = webcam_capture.read()
         if not success:
             break
 
-        # results = model(img, stream=True)  # Get predictions from the model
-        # Convert BGR (OpenCV format) to RGB (format expected by most models)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = model(img_rgb, stream=True)
 
-        # Parse results
+        no_helmet_detected = False  
+
         for r in results:
             boxes = r.boxes
-
             for box in boxes:
-                # Extract bounding box coordinates
                 x1, y1, x2, y2 = box.xyxy[0]
-                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # Convert to int values
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                # Draw bounding box on the image
                 cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
-                # Confidence score
                 confidence = math.ceil((box.conf[0] * 100)) / 100
-                print("Confidence: ", confidence)
+                cls = int(box.cls[0])  
+                class_name = class_names[cls] 
+                print("Class name: ", class_name, "Confidence: ", confidence)
 
-                # Class name based on the prediction (0: With Helmet, 1: Without Helmet)
-                cls = int(box.cls[0])  # Get the class index
-                class_name = class_names[cls]  # Get the class name from the list
-                print("Class name: ", class_name)
+                if class_name == "no-helmet":
+                    no_helmet_detected = True
 
-                # Display the class name on the image
-                org = (x1, y1 - 10)  # Position to place text slightly above the bounding box
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                fontScale = 1
-                color = (255, 0, 0)  # Blue text color
-                thickness = 2
+                org = (x1, y1 - 10)
+                cv2.putText(img, f'{class_name} ({confidence:.2f})', org, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-                cv2.putText(img, f'{class_name} ({confidence:.2f})', org, font, fontScale, color, thickness)
+        if no_helmet_detected:
+            if no_helmet_start_time is None:
+                no_helmet_start_time = time.time()
+            else:
+                elapsed_time = time.time() - no_helmet_start_time
+                if elapsed_time > capture_interval and image_count < image_limit:
+                    image_path = os.path.join(save_folder, f"no_helmet_{image_count + 1}.jpg")
+                    cv2.imwrite(image_path, img)
+                    print(f"Captured and saved: {image_path}")
+                    image_count += 1
+                    no_helmet_start_time = time.time()  
+        else:
+            no_helmet_start_time = None 
 
-        # Display the webcam feed with detections
         cv2.imshow('Webcam', img)
 
-        # Press 'q' to exit the loop
         if cv2.waitKey(1) == ord('q'):
             break
 
-    # Release the webcam and destroy all OpenCV windows
     webcam_capture.release()
     cv2.destroyAllWindows()
