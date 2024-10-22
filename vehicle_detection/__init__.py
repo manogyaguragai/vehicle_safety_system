@@ -3,6 +3,9 @@ import os
 import time
 from ultralytics import YOLO
 import math
+import pyttsx3
+
+engine = pyttsx3.init()
 
 model = YOLO("/home/manogyaguragai/Downloads/bestmain.pt")
 
@@ -62,6 +65,10 @@ def detect_vehicle():
                     image_path = os.path.join(save_folder, f"no_helmet_{image_count + 1}.jpg")
                     cv2.imwrite(image_path, img)
                     print(f"Captured and saved: {image_path}")
+                    
+                    engine.say("Helmet Violation detected")
+                    engine.runAndWait()
+
                     image_count += 1
                     no_helmet_start_time = time.time()  
         else:

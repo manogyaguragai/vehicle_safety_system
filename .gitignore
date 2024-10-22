@@ -4,7 +4,10 @@ __pycache__/
 *$py.class
 *.pt
 # C extensions
-*.so
+helmet_images/
+runs/
+no_helmet_captured/
+
 
 # Distribution / packaging
 .Python
